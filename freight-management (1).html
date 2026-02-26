@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreightOS — Fracht & Transportverwaltung</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --green: #00e676;
+    --yellow: #ffd740;
+    --red: #ff4444;
+    --text: #e8edf5;
+    --text2: #8899aa;
+    --text3: #4a5568;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px; min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 24px 0;
+    position: fixed; left: 0; top: 0; bottom: 0;
+    z-index: 100;
+  }
+  .logo {
+    padding: 0 24px 32px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 22px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #0066cc);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .nav { padding: 24px 12px; flex: 1; }
+  .nav-section { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; padding: 0 12px 8px; margin-top: 16px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; color: var(--text2);
+    transition: all 0.2s; margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(0,212,255,0.1); color: var(--accent); border-color: rgba(0,212,255,0.2); }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .badge { margin-left: auto; background: var(--accent2); color: white; font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+
+  /* MAIN */
+  .main { margin-left: 240px; flex: 1; padding: 32px; }
+
+  /* TOPBAR */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+  .page-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; }
+  .page-subtitle { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .topbar-actions { display: flex; gap: 12px; align-items: center; }
+  .btn {
+    padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+    transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #33ddff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(255,68,68,0.15); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+  .btn-danger:hover { background: rgba(255,68,68,0.25); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: var(--accent); }
+  .kpi-card::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.blue::after { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card.orange::after { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .kpi-card.green::after { background: linear-gradient(90deg, var(--green), transparent); }
+  .kpi-card.yellow::after { background: linear-gradient(90deg, var(--yellow), transparent); }
+  .kpi-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; font-family: 'IBM Plex Mono', monospace; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+  .kpi-card.blue .kpi-value { color: var(--accent); }
+  .kpi-card.orange .kpi-value { color: var(--accent2); }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.yellow .kpi-value { color: var(--yellow); }
+  .kpi-change { font-size: 12px; color: var(--text2); margin-top: 8px; }
+  .kpi-icon { position: absolute; right: 20px; top: 20px; font-size: 28px; opacity: 0.15; }
+
+  /* PANELS */
+  .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .panel.full { grid-column: 1 / -1; }
+  .panel-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .panel-body { padding: 20px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 10px 12px;
+    font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(30,45,69,0.5); cursor: pointer; transition: background 0.15s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 12px 12px; font-size: 13px; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* STATUS BADGES */
+  .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; font-family: 'IBM Plex Mono', monospace;
+  }
+  .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+  .status-transit { background: rgba(0,212,255,0.1); color: var(--accent); }
+  .status-transit::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .status-delivered { background: rgba(0,230,118,0.1); color: var(--green); }
+  .status-delivered::before { background: var(--green); }
+  .status-pending { background: rgba(255,215,64,0.1); color: var(--yellow); }
+  .status-pending::before { background: var(--yellow); }
+  .status-delayed { background: rgba(255,68,68,0.1); color: var(--red); }
+  .status-delayed::before { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .status-customs { background: rgba(255,107,53,0.1); color: var(--accent2); }
+  .status-customs::before { background: var(--accent2); }
+
+  /* TYPE BADGE */
+  .type-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: 4px; font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace; border: 1px solid;
+  }
+  .type-import { border-color: rgba(0,230,118,0.3); color: var(--green); background: rgba(0,230,118,0.05); }
+  .type-export { border-color: rgba(255,107,53,0.3); color: var(--accent2); background: rgba(255,107,53,0.05); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 600px; max-width: 90vw; max-height: 85vh;
+    overflow-y: auto; animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-header {
+    padding: 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+  }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; }
+  .modal-close { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .modal-body { padding: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.col3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 14px;
+    font-family: 'Inter', sans-serif; font-size: 13px;
+    outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 80px; }
+  .modal-footer { padding: 20px 24px; border-top: 1px solid var(--border); display: flex; gap: 12px; justify-content: flex-end; }
+
+  /* SEARCH BAR */
+  .search-bar {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px; min-width: 280px;
+  }
+  .search-bar input { background: none; border: none; padding: 0; flex: 1; }
+  .search-bar input:focus { outline: none; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface2); border-radius: 8px; margin-bottom: 20px; }
+  .tab { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.2s; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+  /* PROGRESS */
+  .progress-bar { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .progress-blue { background: linear-gradient(90deg, var(--accent), #0066cc); }
+  .progress-green { background: linear-gradient(90deg, var(--green), #00a854); }
+
+  /* TRANSPORT CARD */
+  .transport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .transport-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .transport-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .transport-card .t-icon { font-size: 28px; margin-bottom: 10px; }
+  .transport-card .t-id { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); }
+  .transport-card .t-name { font-weight: 600; font-size: 14px; margin: 4px 0; }
+  .transport-card .t-info { font-size: 12px; color: var(--text2); }
+  .transport-card .t-capacity { margin-top: 10px; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* STATS ROW */
+  .stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat-pill { background: var(--surface2); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-family: 'IBM Plex Mono', monospace; color: var(--text2); }
+
+  /* ROUTE DISPLAY */
+  .route { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .route-arrow { color: var(--text3); }
+
+  /* NOTIFY TOAST */
+  .toast {
+    position: fixed; bottom: 32px; right: 32px;
+    background: var(--surface); border: 1px solid var(--green);
+    border-radius: 10px; padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; z-index: 9999;
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { color: var(--green); font-size: 18px; }
+
+  /* DETAIL POPUP */
+  .detail-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { font-size: 12px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .detail-value { font-size: 13px; text-align: right; max-width: 60%; }
+
+  /* TIMELINE */
+  .timeline { padding: 8px 0; }
+  .tl-item { display: flex; gap: 16px; padding-bottom: 20px; position: relative; }
+  .tl-item:not(:last-child)::before { content: ''; position: absolute; left: 7px; top: 18px; bottom: 0; width: 1px; background: var(--border); }
+  .tl-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid; flex-shrink: 0; margin-top: 2px; }
+  .tl-dot.done { border-color: var(--green); background: rgba(0,230,118,0.2); }
+  .tl-dot.active { border-color: var(--accent); background: rgba(0,212,255,0.2); box-shadow: 0 0 8px var(--accent); }
+  .tl-dot.pending { border-color: var(--border); background: transparent; }
+  .tl-content .tl-title { font-size: 13px; font-weight: 500; }
+  .tl-content .tl-time { font-size: 11px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+
+  /* PACKAGING CARD */
+  .pkg-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; cursor: pointer;
+    transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .pkg-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,212,255,0.1); }
+  .pkg-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .pkg-card.cat-Karton::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .pkg-card.cat-Palette::before { background: linear-gradient(90deg, var(--yellow), transparent); }
+  .pkg-card.cat-Sonder::before { background: linear-gradient(90deg, #9c27b0, transparent); }
+  .pkg-card .pkg-icon { font-size:26px; margin-bottom:8px; }
+  .pkg-card .pkg-name { font-weight:700; font-size:14px; margin-bottom:4px; }
+  .pkg-card .pkg-dims { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent); margin-bottom:6px; }
+  .pkg-card .pkg-info { font-size:12px; color:var(--text2); line-height:1.6; }
+  .pkg-card .pkg-stock { position:absolute; top:12px; right:12px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:11px; font-family:'IBM Plex Mono',monospace; }
+  .pkg-card .pkg-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+  .pkg-tag { background:var(--surface); border:1px solid var(--border); padding:2px 7px; border-radius:4px; font-size:10px; color:var(--text2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 900px) { .panel-grid { grid-template-columns: 1fr; } .transport-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">🚢</div>
+      FreightOS
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Übersicht</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-section">Fracht</div>
+      <div class="nav-item" onclick="showPage('shipments')">
+        <span class="icon">📦</span> Sendungen
+        <span class="badge" id="pending-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="showPage('transport')">
+        <span class="icon">🚛</span> Transportmittel
+      </div>
+      <div class="nav-item" onclick="showPage('routes')">
+        <span class="icon">🗺️</span> Routen
+      </div>
+      <div class="nav-section">Verwaltung</div>
+      <div class="nav-item" onclick="showPage('customs')">
+        <span class="icon">🛂</span> Zoll & Dokumente
+      </div>
+      <div class="nav-item" onclick="showPage('partners')">
+        <span class="icon">🤝</span> Partner
+      </div>
+      <div class="nav-item" onclick="showPage('packaging')">
+        <span class="icon">📫</span> Packmittel
+      </div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" onclick="showPage('settings')">
+        <span class="icon">⚙️</span> Einstellungen
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="page active" id="page-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Echtzeit-Übersicht Ihrer Fracht-Operationen</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" placeholder="Sendung suchen…" oninput="globalSearch(this.value)">
+          </div>
+          <button class="btn btn-primary" onclick="openModal('new-shipment')">＋ Neue Sendung</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-label">Aktive Sendungen</div>
+          <div class="kpi-value" id="kpi-active">0</div>
+          <div class="kpi-change">↑ 12% ggü. Vormonat</div>
+        </div>
+        <div class="kpi-card orange">
+          <div class="kpi-icon">⏳</div>
+          <div class="kpi-label">In Zollabfertigung</div>
+          <div class="kpi-value" id="kpi-customs">0</div>
+          <div class="kpi-change">= Keine Änderung</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-label">Zugestellt (Monat)</div>
+          <div class="kpi-value" id="kpi-delivered">0</div>
+          <div class="kpi-change">↑ 8% ggü. Vormonat</div>
+        </div>
+        <div class="kpi-card yellow">
+          <div class="kpi-icon">⚠️</div>
+          <div class="kpi-label">Verzögert</div>
+          <div class="kpi-value" id="kpi-delayed">0</div>
+          <div class="kpi-change">↓ 2 ggü. Vorwoche</div>
+        </div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel full">
+          <div class="panel-header">
+            <div class="panel-title">📦 Aktuelle Sendungen</div>
+            <button class="btn btn-secondary btn-sm" onclick="showPage('shipments')">Alle anzeigen →</button>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <table>
+              <thead><tr>
+                <th>Sendungs-ID</th><th>Typ</th><th>Beschreibung</th><th>Route</th><th>Transportmittel</th><th>Status</th><th>ETA</th><th>Aktion</th>
+              </tr></thead>
+              <tbody id="dashboard-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">🚛 Transportmittel-Status</div></div>
+          <div class="panel-body" id="transport-status-panel"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">📋 Zoll-Alerts</div></div>
+          <div class="panel-body" id="customs-alerts-panel"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SENDUNGEN ===== -->
+    <div class="page" id="page-shipments">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sendungen</div>
+          <div class="page-subtitle">Alle Import- und Export-Sendungen verwalten</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" placeholder="Suchen…" oninput="filterShipments(this.value)">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ CSV Export</button>
+          <button class="btn btn-primary" onclick="openModal('new-shipment')">＋ Neue Sendung</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="filterByStatus(this, 'all')">Alle</div>
+        <div class="tab" onclick="filterByStatus(this, 'In Transit')">In Transit</div>
+        <div class="tab" onclick="filterByStatus(this, 'Ausstehend')">Ausstehend</div>
+        <div class="tab" onclick="filterByStatus(this, 'Zoll')">Zoll</div>
+        <div class="tab" onclick="filterByStatus(this, 'Verzögert')">Verzögert</div>
+        <div class="tab" onclick="filterByStatus(this, 'Zugestellt')">Zugestellt</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body" style="padding:0">
+          <table>
+            <thead><tr>
+              <th>Sendungs-ID</th><th>Typ</th><th>Ware</th><th>Gewicht / Volumen</th><th>Route</th><th>Transportmittel</th><th>Status</th><th>ETA</th><th>Aktionen</th>
+            </tr></thead>
+            <tbody id="shipments-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRANSPORTMITTEL ===== -->
+    <div class="page" id="page-transport">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Transportmittel</div>
+          <div class="page-subtitle">Fahrzeuge, Schiffe, Flugzeuge und Züge verwalten</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="openModal('new-transport')">＋ Neues Transportmittel</button>
+        </div>
+      </div>
+      <div class="transport-grid" id="transport-grid"></div>
+    </div>
+
+    <!-- ===== ROUTEN ===== -->
+    <div class="page" id="page-routes">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Routen</div>
+          <div class="page-subtitle">Import- und Export-Routen konfigurieren</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="openModal('new-route')">＋ Neue Route</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-body" style="padding:0">
+          <table>
+            <thead><tr>
+              <th>Route-ID</th><th>Von</th><th>Nach</th><th>Transportart</th><th>Distanz</th><th>Ø Dauer</th><th>Zoll-Info</th><th>Status</th>
+            </tr></thead>
+            <tbody id="routes-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ZOLL & DOKUMENTE ===== -->
+    <div class="page" id="page-customs">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Zoll & Dokumente</div>
+          <div class="page-subtitle">Zolldokumente und Compliance verwalten</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="openModal('new-customs')">＋ Neues Dokument</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-body" style="padding:0">
+          <table>
+            <thead><tr>
+              <th>Dok.-Nr.</th><th>Sendungs-ID</th><th>Dokumenttyp</th><th>Land</th><th>Eingereicht</th><th>Gültig bis</th><th>Status</th><th>Aktionen</th>
+            </tr></thead>
+            <tbody id="customs-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PARTNER ===== -->
+    <div class="page" id="page-partners">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Partner & Kontakte</div>
+          <div class="page-subtitle">Spediteure, Zollagenten, Kunden verwalten</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="openModal('new-partner')">＋ Neuer Partner</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-body" style="padding:0">
+          <table>
+            <thead><tr>
+              <th>Partner-ID</th><th>Name</th><th>Typ</th><th>Land</th><th>Kontakt</th><th>Aktive Sendungen</th><th>Bewertung</th>
+            </tr></thead>
+            <tbody id="partners-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PACKMITTEL ===== -->
+    <div class="page" id="page-packaging">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Packmittel</div>
+          <div class="page-subtitle">Kartons, Paletten und Verpackungseinheiten verwalten & zuweisen</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('assign-packaging')">📦 Sendung zuweisen</button>
+          <button class="btn btn-primary" onclick="openModal('new-packaging')">＋ Neues Packmittel</button>
+        </div>
+      </div>
+
+      <!-- Kategorie-Tabs -->
+      <div class="tabs" id="pkg-tabs">
+        <div class="tab active" onclick="filterPackaging(this,'all')">Alle</div>
+        <div class="tab" onclick="filterPackaging(this,'Karton')">📦 Kartons</div>
+        <div class="tab" onclick="filterPackaging(this,'Palette')">🪵 Paletten</div>
+        <div class="tab" onclick="filterPackaging(this,'Sonder')">🔧 Sonderverpackung</div>
+      </div>
+
+      <!-- Packmittel-Katalog -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px">Verfügbare Packmittel</div>
+        <div id="packaging-catalog" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px"></div>
+      </div>
+
+      <!-- Zuweisung Übersicht -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📋 Packmittel-Zuweisung je Sendung</div>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table>
+            <thead><tr>
+              <th>Sendungs-ID</th><th>Ware</th><th>Zugewiesene Packmittel</th><th>Ges. Einheiten</th><th>Ges. Gewicht (kg)</th><th>Aktionen</th>
+            </tr></thead>
+            <tbody id="packaging-assignments-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EINSTELLUNGEN ===== -->
+    <div class="page" id="page-settings">
+      <div class="topbar">
+        <div><div class="page-title">Einstellungen</div></div>
+      </div>
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">⚙️ System</div></div>
+          <div class="panel-body">
+            <div class="form-group" style="margin-bottom:16px">
+              <label>Unternehmensname</label>
+              <input type="text" value="MeineFirma GmbH">
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+              <label>Standard-Währung</label>
+              <select><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select>
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+              <label>Zeitzone</label>
+              <select><option>Europe/Berlin</option><option>UTC</option><option>America/New_York</option></select>
+            </div>
+            <button class="btn btn-primary">Speichern</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">🔔 Benachrichtigungen</div></div>
+          <div class="panel-body">
+            <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Konfigurieren Sie, wann Sie Alerts erhalten möchten.</p>
+            <div class="form-group" style="margin-bottom:12px;flex-direction:row;align-items:center;justify-content:space-between">
+              <label style="text-transform:none;font-size:13px">Verzögerungsalerts</label>
+              <input type="checkbox" checked style="width:auto">
+            </div>
+            <div class="form-group" style="margin-bottom:12px;flex-direction:row;align-items:center;justify-content:space-between">
+              <label style="text-transform:none;font-size:13px">Zoll-Benachrichtigungen</label>
+              <input type="checkbox" checked style="width:auto">
+            </div>
+            <div class="form-group" style="margin-bottom:12px;flex-direction:row;align-items:center;justify-content:space-between">
+              <label style="text-transform:none;font-size:13px">Ankunfts-Alerts</label>
+              <input type="checkbox" checked style="width:auto">
+            </div>
+            <button class="btn btn-primary" style="margin-top:8px">Speichern</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Neue Sendung -->
+<div class="modal-overlay" id="modal-new-shipment">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📦 Neue Sendung anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-shipment')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Import / Export</label>
+          <select id="new-type">
+            <option value="Import">Import</option>
+            <option value="Export">Export</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Transportmittel</label>
+          <select id="new-vehicle"></select>
+        </div>
+        <div class="form-group full">
+          <label>Warenbeschreibung</label>
+          <input type="text" id="new-desc" placeholder="z.B. Elektronik, Textilien, Maschinen…">
+        </div>
+        <div class="form-group">
+          <label>Absender / Verlader</label>
+          <input type="text" id="new-sender" placeholder="Firma oder Name">
+        </div>
+        <div class="form-group">
+          <label>Empfänger</label>
+          <input type="text" id="new-receiver" placeholder="Firma oder Name">
+        </div>
+        <div class="form-group">
+          <label>Herkunftsland / -port</label>
+          <input type="text" id="new-origin" placeholder="z.B. Shanghai, CN">
+        </div>
+        <div class="form-group">
+          <label>Zielland / -port</label>
+          <input type="text" id="new-dest" placeholder="z.B. Hamburg, DE">
+        </div>
+        <div class="form-group">
+          <label>Gewicht (kg)</label>
+          <input type="number" id="new-weight" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Volumen (m³)</label>
+          <input type="number" id="new-volume" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Gefahrgut-Klasse</label>
+          <select id="new-hazmat">
+            <option value="Keine">Keine</option>
+            <option>Klasse 1 – Explosivstoffe</option>
+            <option>Klasse 2 – Gase</option>
+            <option>Klasse 3 – Flüssige Stoffe</option>
+            <option>Klasse 4 – Feste Stoffe</option>
+            <option>Klasse 6 – Giftige Stoffe</option>
+            <option>Klasse 9 – Sonstige</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Warenwert (€)</label>
+          <input type="number" id="new-value" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>ETA (Geplante Ankunft)</label>
+          <input type="date" id="new-eta">
+        </div>
+        <div class="form-group">
+          <label>Priorität</label>
+          <select id="new-priority">
+            <option>Normal</option>
+            <option>Hoch</option>
+            <option>Express</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Notizen / Sonderbedingungen</label>
+          <textarea id="new-notes" placeholder="Kühlpflichtig, Fragil, besondere Zollanforderungen…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-shipment')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="addShipment()">Sendung anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title">Sendungs-Details</div>
+      <button class="modal-close" onclick="closeModal('detail')">✕</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<!-- Neues Transportmittel -->
+<div class="modal-overlay" id="modal-new-transport">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🚛 Transportmittel anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-transport')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Typ</label>
+          <select id="t-type">
+            <option>LKW</option><option>Schiff</option><option>Flugzeug</option><option>Zug</option><option>Container</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bezeichnung / Kennzeichen</label>
+          <input type="text" id="t-name" placeholder="z.B. MV Atlantic Star">
+        </div>
+        <div class="form-group">
+          <label>Max. Ladegewicht (t)</label>
+          <input type="number" id="t-capacity">
+        </div>
+        <div class="form-group">
+          <label>Betreiber / Reederei</label>
+          <input type="text" id="t-operator">
+        </div>
+        <div class="form-group">
+          <label>Heimathafen / Standort</label>
+          <input type="text" id="t-base">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="t-status">
+            <option>Verfügbar</option><option>Im Einsatz</option><option>Wartung</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-transport')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="addTransport()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Neue Route -->
+<div class="modal-overlay" id="modal-new-route">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🗺️ Route anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-route')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Von (Hafen / Flughafen / Stadt)</label>
+          <input type="text" id="r-from" placeholder="z.B. Shanghai">
+        </div>
+        <div class="form-group">
+          <label>Nach</label>
+          <input type="text" id="r-to" placeholder="z.B. Hamburg">
+        </div>
+        <div class="form-group">
+          <label>Transportart</label>
+          <select id="r-mode">
+            <option>Seefracht</option><option>Luftfracht</option><option>LKW</option><option>Schiene</option><option>Multimodal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ø Dauer (Tage)</label>
+          <input type="number" id="r-days">
+        </div>
+        <div class="form-group">
+          <label>Distanz (km)</label>
+          <input type="number" id="r-dist">
+        </div>
+        <div class="form-group">
+          <label>Zollinfo</label>
+          <input type="text" id="r-customs" placeholder="z.B. EU-Präferenz, ATR">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-route')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="addRoute()">Route anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Neues Zolldokument -->
+<div class="modal-overlay" id="modal-new-customs">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🛂 Zolldokument anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-customs')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Sendungs-ID</label>
+          <input type="text" id="c-sid" placeholder="z.B. FR-2024-001">
+        </div>
+        <div class="form-group">
+          <label>Dokumenttyp</label>
+          <select id="c-type">
+            <option>Handelsrechnung</option>
+            <option>Packungsliste</option>
+            <option>Ursprungszeugnis</option>
+            <option>Konnossement (B/L)</option>
+            <option>Luftfrachtbrief (AWB)</option>
+            <option>CMR-Frachtbrief</option>
+            <option>Carnet ATA</option>
+            <option>EUR.1</option>
+            <option>Gesundheitszertifikat</option>
+            <option>Phytosanitäres Zeugnis</option>
+            <option>Gefahrgutdekl. (IMDG/IATA)</option>
+            <option>Einfuhranmeldung</option>
+            <option>Ausfuhranmeldung</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Land</label>
+          <input type="text" id="c-country" placeholder="z.B. China, USA">
+        </div>
+        <div class="form-group">
+          <label>Eingereicht am</label>
+          <input type="date" id="c-submitted">
+        </div>
+        <div class="form-group">
+          <label>Gültig bis</label>
+          <input type="date" id="c-valid">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="c-status">
+            <option>Ausstehend</option><option>Eingereicht</option><option>Genehmigt</option><option>Abgelehnt</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-customs')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="addCustomsDoc()">Dokument anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Neuer Partner -->
+<div class="modal-overlay" id="modal-new-partner">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🤝 Partner anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-partner')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Firmenname</label>
+          <input type="text" id="p-name">
+        </div>
+        <div class="form-group">
+          <label>Partnertyp</label>
+          <select id="p-type">
+            <option>Spediteur</option><option>Reederei</option><option>Zollagent</option><option>Kunde</option><option>Lieferant</option><option>Lagerhaus</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Land</label>
+          <input type="text" id="p-country">
+        </div>
+        <div class="form-group">
+          <label>Ansprechpartner</label>
+          <input type="text" id="p-contact">
+        </div>
+        <div class="form-group">
+          <label>E-Mail</label>
+          <input type="email" id="p-email">
+        </div>
+        <div class="form-group">
+          <label>Telefon</label>
+          <input type="tel" id="p-phone">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-partner')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="addPartner()">Partner anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Neues Packmittel -->
+<div class="modal-overlay" id="modal-new-packaging">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📦 Neues Packmittel anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-packaging')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Kategorie</label>
+          <select id="pkg-cat" onchange="updatePkgSubtype()">
+            <option value="Karton">Karton</option>
+            <option value="Palette">Palette</option>
+            <option value="Sonder">Sonderverpackung</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bezeichnung</label>
+          <input type="text" id="pkg-name" placeholder="z.B. Eurokarton XL">
+        </div>
+        <div class="form-group">
+          <label>Länge (cm)</label>
+          <input type="number" id="pkg-l" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Breite (cm)</label>
+          <input type="number" id="pkg-w" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Höhe (cm)</label>
+          <input type="number" id="pkg-h" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Max. Ladegewicht (kg)</label>
+          <input type="number" id="pkg-maxload" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Eigengewicht (kg)</label>
+          <input type="number" id="pkg-selfweight" placeholder="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Material</label>
+          <select id="pkg-material">
+            <option>Wellpappe</option>
+            <option>Holz</option>
+            <option>Kunststoff</option>
+            <option>Metall</option>
+            <option>Styropor</option>
+            <option>Folie</option>
+            <option>Sonstig</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Stapelbar</label>
+          <select id="pkg-stack">
+            <option value="Ja">Ja</option>
+            <option value="Nein">Nein</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Verfügbarer Bestand</label>
+          <input type="number" id="pkg-stock" placeholder="0">
+        </div>
+        <div class="form-group full">
+          <label>Besondere Eigenschaften</label>
+          <input type="text" id="pkg-props" placeholder="z.B. Kühlgeeignet, Gefahrgutkonform, UN-zertifiziert…">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-packaging')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="addPackaging()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Packmittel zuweisen -->
+<div class="modal-overlay" id="modal-assign-packaging">
+  <div class="modal" style="width:700px">
+    <div class="modal-header">
+      <div class="modal-title">📋 Packmittel einer Sendung zuweisen</div>
+      <button class="modal-close" onclick="closeModal('assign-packaging')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:20px">
+        <label>Sendung auswählen</label>
+        <select id="assign-shipment-id" onchange="renderAssignPreview()"></select>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Packmittel & Mengen</div>
+      <div id="assign-pkg-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px"></div>
+      <div id="assign-summary" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;display:none">
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent)">Vorschau Gesamtpackung</div>
+        <div id="assign-summary-content"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('assign-packaging')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveAssignment()">Zuweisung speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toast-msg">Gespeichert!</span>
+</div>
+
+<script>
+// ============================
+// DATA STORE
+// ============================
+let shipments = [
+  { id:'FR-2024-001', type:'Import', desc:'Elektronikkomponenten', sender:'Shenzhen Electronics Co.', receiver:'TechHub GmbH', origin:'Shanghai, CN', dest:'Hamburg, DE', vehicle:'MV Atlantic Star', weight:12500, volume:45, hazmat:'Keine', value:285000, eta:'2024-03-15', status:'In Transit', priority:'Hoch', notes:'Kühlpflichtig: Nein' },
+  { id:'FR-2024-002', type:'Export', desc:'Automobilteile', sender:'AutoParts AG', receiver:'Detroit Motors Inc.', origin:'Stuttgart, DE', dest:'Detroit, US', vehicle:'Luftfracht B747', weight:3200, volume:18, hazmat:'Keine', value:95000, eta:'2024-03-10', status:'Zoll', priority:'Express', notes:'Carnet ATA benötigt' },
+  { id:'FR-2024-003', type:'Import', desc:'Textilien & Bekleidung', sender:'Fashion House Ltd.', receiver:'Style Retail GmbH', origin:'Ho Chi Minh, VN', dest:'Antwerpen, BE', vehicle:'MV Pacific Trade', weight:28000, volume:120, hazmat:'Keine', value:180000, eta:'2024-03-22', status:'Ausstehend', priority:'Normal', notes:'' },
+  { id:'FR-2024-004', type:'Export', desc:'Chemikalien (Industriegrade)', sender:'ChemCorp DE', receiver:'ChemDist SA', origin:'Frankfurt, DE', dest:'São Paulo, BR', vehicle:'LKW-FZ-001', weight:8000, volume:30, hazmat:'Klasse 3 – Flüssige Stoffe', value:65000, eta:'2024-03-08', status:'Verzögert', priority:'Hoch', notes:'IMDG-Dokumentation erforderlich' },
+  { id:'FR-2024-005', type:'Import', desc:'Maschinen & Anlagen', sender:'SinoMach Corp.', receiver:'MaschinenWerk AG', origin:'Tianjin, CN', dest:'Bremen, DE', vehicle:'MV Atlantic Star', weight:45000, volume:200, hazmat:'Keine', value:1200000, eta:'2024-03-30', status:'In Transit', priority:'Normal', notes:'Schwerlast – Sondergenehmigung' },
+  { id:'FR-2024-006', type:'Export', desc:'Pharmawirkstoffe', sender:'PharmaChem GmbH', receiver:'MedLab USA', origin:'München, DE', dest:'New York, US', vehicle:'Luftfracht B747', weight:500, volume:5, hazmat:'Klasse 6 – Giftige Stoffe', value:420000, eta:'2024-03-09', status:'Zugestellt', priority:'Express', notes:'GDP-konform, Kühlkette 2–8°C' },
+];
+
+let transports = [
+  { id:'T-001', icon:'🚢', type:'Schiff', name:'MV Atlantic Star', capacity:50000, operator:'Hamburg Sud', base:'Hamburg', status:'Im Einsatz', load:72 },
+  { id:'T-002', icon:'✈️', type:'Flugzeug', name:'Luftfracht B747', capacity:110, operator:'Lufthansa Cargo', base:'Frankfurt', status:'Im Einsatz', load:85 },
+  { id:'T-003', icon:'🚢', type:'Schiff', name:'MV Pacific Trade', capacity:65000, operator:'MSC', base:'Antwerpen', status:'Im Einsatz', load:45 },
+  { id:'T-004', icon:'🚛', type:'LKW', name:'LKW-FZ-001', capacity:24, operator:'DB Schenker', base:'München', status:'Im Einsatz', load:100 },
+  { id:'T-005', icon:'🚛', type:'LKW', name:'LKW-FZ-002', capacity:24, operator:'DB Schenker', base:'Köln', status:'Verfügbar', load:0 },
+  { id:'T-006', icon:'🚂', type:'Zug', name:'KV-Express 1', capacity:2000, operator:'DB Cargo', base:'Duisburg', status:'Verfügbar', load:0 },
+];
+
+let routes = [
+  { id:'R-001', from:'Shanghai', to:'Hamburg', mode:'Seefracht', dist:20080, days:28, customs:'EU MFN Zoll', status:'Aktiv' },
+  { id:'R-002', from:'Frankfurt', to:'New York', mode:'Luftfracht', dist:6170, days:2, customs:'US Import', status:'Aktiv' },
+  { id:'R-003', from:'Stuttgart', to:'Detroit', mode:'Multimodal', dist:7800, days:14, customs:'USMCA Präferenz', status:'Aktiv' },
+  { id:'R-004', from:'Hamburg', to:'São Paulo', mode:'Seefracht', dist:10200, days:21, customs:'Mercosur', status:'Aktiv' },
+  { id:'R-005', from:'Tianjin', to:'Bremen', mode:'Seefracht', dist:19400, days:30, customs:'EU MFN Zoll', status:'Aktiv' },
+];
+
+let customs_docs = [
+  { id:'D-001', sid:'FR-2024-001', type:'Handelsrechnung', country:'China', submitted:'2024-02-28', valid:'2024-03-30', status:'Genehmigt' },
+  { id:'D-002', sid:'FR-2024-002', type:'Carnet ATA', country:'USA', submitted:'2024-03-01', valid:'2025-03-01', status:'Ausstehend' },
+  { id:'D-003', sid:'FR-2024-002', type:'Ausfuhranmeldung', country:'Deutschland', submitted:'2024-03-01', valid:'2024-03-15', status:'Eingereicht' },
+  { id:'D-004', sid:'FR-2024-004', type:'Gefahrgutdekl. (IMDG/IATA)', country:'Brasilien', submitted:'2024-02-25', valid:'2024-04-25', status:'Genehmigt' },
+  { id:'D-005', sid:'FR-2024-006', type:'Gesundheitszertifikat', country:'USA', submitted:'2024-03-05', valid:'2024-04-05', status:'Genehmigt' },
+];
+
+let partners = [
+  { id:'P-001', name:'Hamburg Sud GmbH', type:'Reederei', country:'Deutschland', contact:'Klaus Meyer', email:'k.meyer@hamsud.de', active:2 },
+  { id:'P-002', name:'Lufthansa Cargo AG', type:'Spediteur', country:'Deutschland', contact:'Anna Schmidt', email:'a.schmidt@lhcargo.de', active:2 },
+  { id:'P-003', name:'China Zollservice Ltd.', type:'Zollagent', country:'China', contact:'Li Wei', email:'liwei@czs.cn', active:3 },
+  { id:'P-004', name:'TechHub GmbH', type:'Kunde', country:'Deutschland', contact:'Stefan Wolf', email:'s.wolf@techhub.de', active:1 },
+];
+
+let shipmentFilter = 'all';
+let searchQuery = '';
+
+// ============================
+// NAVIGATION
+// ============================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget && event.currentTarget.classList.add('active');
+  renderAll();
+}
+
+// ============================
+// MODALS
+// ============================
+function openModal(id) {
+  if (id === 'new-shipment') populateVehicleSelect();
+  if (id === 'assign-packaging') openAssignModal();
+  document.getElementById('modal-' + id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById('modal-' + id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+function populateVehicleSelect() {
+  const sel = document.getElementById('new-vehicle');
+  sel.innerHTML = transports.map(t => `<option value="${t.name}">${t.icon} ${t.name}</option>`).join('');
+}
+
+// ============================
+// TOAST
+// ============================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================
+// STATUS HELPERS
+// ============================
+function statusBadge(s) {
+  const map = { 'In Transit':'status-transit', 'Zugestellt':'status-delivered', 'Ausstehend':'status-pending', 'Verzögert':'status-delayed', 'Zoll':'status-customs' };
+  return `<span class="status ${map[s]||'status-pending'}">${s}</span>`;
+}
+function typeBadge(t) {
+  return `<span class="type-badge type-${t==='Import'?'import':'export'}">${t==='Import'?'↓':'↑'} ${t}</span>`;
+}
+
+// ============================
+// RENDER FUNCTIONS
+// ============================
+function renderAll() { renderDashboard(); renderShipments(); renderTransport(); renderRoutes(); renderCustoms(); renderPartners(); renderPackaging(); updateKPIs(); }
+
+function updateKPIs() {
+  const active = shipments.filter(s => s.status === 'In Transit').length;
+  const custom = shipments.filter(s => s.status === 'Zoll').length;
+  const del = shipments.filter(s => s.status === 'Zugestellt').length;
+  const delay = shipments.filter(s => s.status === 'Verzögert').length;
+  document.getElementById('kpi-active').textContent = active;
+  document.getElementById('kpi-customs').textContent = custom;
+  document.getElementById('kpi-delivered').textContent = del;
+  document.getElementById('kpi-delayed').textContent = delay;
+  const pending = shipments.filter(s => s.status === 'Ausstehend').length;
+  document.getElementById('pending-badge').textContent = pending;
+}
+
+function renderDashboard() {
+  const tbody = document.getElementById('dashboard-table');
+  const recent = [...shipments].slice(-6).reverse();
+  tbody.innerHTML = recent.map(s => `
+    <tr onclick="showDetail('${s.id}')">
+      <td class="mono">${s.id}</td>
+      <td>${typeBadge(s.type)}</td>
+      <td>${s.desc}</td>
+      <td><span class="route"><span>${s.origin}</span><span class="route-arrow">→</span><span>${s.dest}</span></span></td>
+      <td class="mono" style="font-size:11px">${s.vehicle}</td>
+      <td>${statusBadge(s.status)}</td>
+      <td class="mono">${s.eta}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showDetail('${s.id}')">Detail</button></td>
+    </tr>`).join('');
+
+  // Transport Status Panel
+  document.getElementById('transport-status-panel').innerHTML = transports.slice(0,4).map(t => `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span>${t.icon} <strong style="font-size:13px">${t.name}</strong></span>
+        <span class="mono" style="font-size:11px;color:var(--text2)">${t.load}% beladen</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill ${t.load>80?'progress-green':'progress-blue'}" style="width:${t.load}%"></div></div>
+    </div>`).join('');
+
+  // Customs Alerts
+  const delayed = shipments.filter(s => s.status === 'Verzögert' || s.status === 'Zoll');
+  document.getElementById('customs-alerts-panel').innerHTML = delayed.length === 0
+    ? '<p style="color:var(--text2);font-size:13px">Keine aktiven Alerts ✓</p>'
+    : delayed.map(s => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px;border:1px solid var(--border)">
+      <span style="font-size:20px">${s.status==='Verzögert'?'⚠️':'🛂'}</span>
+      <div>
+        <div style="font-size:13px;font-weight:500">${s.id} – ${s.desc}</div>
+        <div style="font-size:11px;color:var(--text2)">${s.status} · ETA: ${s.eta}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderShipments() {
+  const tbody = document.getElementById('shipments-table');
+  let data = shipments;
+  if (shipmentFilter !== 'all') data = data.filter(s => s.status === shipmentFilter);
+  if (searchQuery) data = data.filter(s => JSON.stringify(s).toLowerCase().includes(searchQuery.toLowerCase()));
+  tbody.innerHTML = data.map(s => `
+    <tr onclick="showDetail('${s.id}')">
+      <td class="mono">${s.id}</td>
+      <td>${typeBadge(s.type)}</td>
+      <td>${s.desc}</td>
+      <td class="mono" style="font-size:11px">${s.weight.toLocaleString()} kg / ${s.volume} m³</td>
+      <td><span class="route"><span>${s.origin}</span><span class="route-arrow">→</span><span>${s.dest}</span></span></td>
+      <td class="mono" style="font-size:11px">${s.vehicle}</td>
+      <td>${statusBadge(s.status)}</td>
+      <td class="mono">${s.eta}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showDetail('${s.id}')">Detail</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteShipment('${s.id}')">✕</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:30px">Keine Sendungen gefunden</td></tr>';
+}
+
+function renderTransport() {
+  document.getElementById('transport-grid').innerHTML = transports.map(t => `
+    <div class="transport-card" onclick="showTransportDetail('${t.id}')">
+      <div class="t-icon">${t.icon}</div>
+      <div class="t-id">${t.id}</div>
+      <div class="t-name">${t.name}</div>
+      <div class="t-info">${t.type} · ${t.operator}</div>
+      <div class="t-info" style="margin-top:4px">📍 ${t.base}</div>
+      <div class="t-capacity">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--text2)">Auslastung</span>
+          <span class="mono" style="font-size:11px">${t.load}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill progress-blue" style="width:${t.load}%"></div></div>
+      </div>
+      <div style="margin-top:10px">${t.status==='Verfügbar'?`<span class="status status-delivered">Verfügbar</span>`:t.status==='Im Einsatz'?`<span class="status status-transit">Im Einsatz</span>`:`<span class="status status-pending">Wartung</span>`}</div>
+    </div>`).join('');
+}
+
+function renderRoutes() {
+  document.getElementById('routes-table').innerHTML = routes.map(r => `
+    <tr>
+      <td class="mono">${r.id}</td>
+      <td>${r.from}</td>
+      <td>${r.to}</td>
+      <td>${r.mode}</td>
+      <td class="mono">${r.dist.toLocaleString()} km</td>
+      <td class="mono">${r.days} Tage</td>
+      <td style="font-size:12px;color:var(--text2)">${r.customs}</td>
+      <td><span class="status status-delivered">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderCustoms() {
+  document.getElementById('customs-table').innerHTML = customs_docs.map(d => `
+    <tr>
+      <td class="mono">${d.id}</td>
+      <td class="mono">${d.sid}</td>
+      <td style="font-size:12px">${d.type}</td>
+      <td>${d.country}</td>
+      <td class="mono">${d.submitted}</td>
+      <td class="mono">${d.valid}</td>
+      <td>${d.status==='Genehmigt'?'<span class="status status-delivered">Genehmigt</span>':d.status==='Eingereicht'?'<span class="status status-transit">Eingereicht</span>':d.status==='Abgelehnt'?'<span class="status status-delayed">Abgelehnt</span>':'<span class="status status-pending">Ausstehend</span>'}</td>
+      <td><button class="btn btn-secondary btn-sm">Anzeigen</button></td>
+    </tr>`).join('');
+}
+
+function renderPartners() {
+  document.getElementById('partners-table').innerHTML = partners.map(p => `
+    <tr>
+      <td class="mono">${p.id}</td>
+      <td><strong>${p.name}</strong></td>
+      <td><span style="background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:4px;font-size:11px">${p.type}</span></td>
+      <td>${p.country}</td>
+      <td style="font-size:12px">${p.contact}<br><span style="color:var(--text2)">${p.email}</span></td>
+      <td class="mono" style="text-align:center">${p.active}</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr>`).join('');
+}
+
+// ============================
+// DETAIL VIEW
+// ============================
+function showDetail(id) {
+  const s = shipments.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('detail-title').textContent = `📦 ${s.id} – ${s.desc}`;
+  const tl = getTimeline(s.status);
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      ${typeBadge(s.type)} ${statusBadge(s.status)}
+      <span class="stat-pill">Priorität: ${s.priority}</span>
+      ${s.hazmat !== 'Keine' ? `<span class="stat-pill" style="color:var(--red);border-color:rgba(255,68,68,0.3)">⚠️ ${s.hazmat}</span>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+      <div class="detail-row"><span class="detail-label">Absender</span><span class="detail-value">${s.sender}</span></div>
+      <div class="detail-row"><span class="detail-label">Empfänger</span><span class="detail-value">${s.receiver}</span></div>
+      <div class="detail-row"><span class="detail-label">Herkunft</span><span class="detail-value">${s.origin}</span></div>
+      <div class="detail-row"><span class="detail-label">Ziel</span><span class="detail-value">${s.dest}</span></div>
+      <div class="detail-row"><span class="detail-label">Gewicht</span><span class="detail-value mono">${s.weight.toLocaleString()} kg</span></div>
+      <div class="detail-row"><span class="detail-label">Volumen</span><span class="detail-value mono">${s.volume} m³</span></div>
+      <div class="detail-row"><span class="detail-label">Warenwert</span><span class="detail-value mono">€ ${s.value.toLocaleString()}</span></div>
+      <div class="detail-row"><span class="detail-label">ETA</span><span class="detail-value mono">${s.eta}</span></div>
+      <div class="detail-row"><span class="detail-label">Transportmittel</span><span class="detail-value">${s.vehicle}</span></div>
+      ${s.notes ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-label">Notizen</span><span class="detail-value">${s.notes}</span></div>`:``}
+    </div>
+    <div style="margin-top:20px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Tracking</div>
+      <div class="timeline">${tl}</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary btn-sm" onclick="updateStatus('${s.id}')">Status aktualisieren</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('detail')">Schließen</button>
+    </div>`;
+  openModal('detail');
+}
+
+function getTimeline(status) {
+  const steps = [
+    { label: 'Auftrag erfasst', state: 'done' },
+    { label: 'Abholung / Verladung', state: status==='Ausstehend'?'active':'done' },
+    { label: 'In Transit', state: status==='In Transit'?'active':(['Zoll','Verzögert','Zugestellt'].includes(status)?'done':'pending') },
+    { label: 'Zollabfertigung', state: status==='Zoll'?'active':(status==='Zugestellt'?'done':'pending') },
+    { label: 'Verzögerung', state: status==='Verzögert'?'active':'pending', skip: status!=='Verzögert' },
+    { label: 'Zugestellt', state: status==='Zugestellt'?'active':'pending' },
+  ].filter(s => !s.skip);
+  return steps.map(s => `
+    <div class="tl-item">
+      <div class="tl-dot ${s.state}"></div>
+      <div class="tl-content">
+        <div class="tl-title" style="${s.state==='active'?'color:var(--accent)':s.state==='done'?'color:var(--green)':''}">${s.label}</div>
+      </div>
+    </div>`).join('');
+}
+
+function showTransportDetail(id) {
+  const t = transports.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('detail-title').textContent = `${t.icon} ${t.name}`;
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-row"><span class="detail-label">ID</span><span class="detail-value mono">${t.id}</span></div>
+    <div class="detail-row"><span class="detail-label">Typ</span><span class="detail-value">${t.type}</span></div>
+    <div class="detail-row"><span class="detail-label">Betreiber</span><span class="detail-value">${t.operator}</span></div>
+    <div class="detail-row"><span class="detail-label">Heimathafen</span><span class="detail-value">${t.base}</span></div>
+    <div class="detail-row"><span class="detail-label">Max. Kapazität</span><span class="detail-value mono">${t.capacity.toLocaleString()} ${t.type==='Flugzeug'?'t':'t'}</span></div>
+    <div class="detail-row"><span class="detail-label">Auslastung</span><span class="detail-value">${t.load}%</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${t.status}</span></div>`;
+  openModal('detail');
+}
+
+// ============================
+// ADD FUNCTIONS
+// ============================
+function addShipment() {
+  const prefix = 'FR-2024-';
+  const newId = prefix + String(shipments.length + 1).padStart(3, '0');
+  shipments.push({
+    id: newId,
+    type: document.getElementById('new-type').value,
+    desc: document.getElementById('new-desc').value || 'Unbekannte Ware',
+    sender: document.getElementById('new-sender').value || '-',
+    receiver: document.getElementById('new-receiver').value || '-',
+    origin: document.getElementById('new-origin').value || '-',
+    dest: document.getElementById('new-dest').value || '-',
+    vehicle: document.getElementById('new-vehicle').value,
+    weight: Number(document.getElementById('new-weight').value) || 0,
+    volume: Number(document.getElementById('new-volume').value) || 0,
+    hazmat: document.getElementById('new-hazmat').value,
+    value: Number(document.getElementById('new-value').value) || 0,
+    eta: document.getElementById('new-eta').value || '-',
+    status: 'Ausstehend',
+    priority: document.getElementById('new-priority').value,
+    notes: document.getElementById('new-notes').value,
+  });
+  closeModal('new-shipment');
+  renderAll();
+  showToast(`Sendung ${newId} erfolgreich angelegt!`);
+}
+
+function deleteShipment(id) {
+  if (!confirm(`Sendung ${id} wirklich löschen?`)) return;
+  shipments = shipments.filter(s => s.id !== id);
+  renderAll();
+  showToast('Sendung gelöscht.');
+}
+
+function updateStatus(id) {
+  const s = shipments.find(x => x.id === id);
+  const statuses = ['Ausstehend','In Transit','Zoll','Verzögert','Zugestellt'];
+  const next = statuses[(statuses.indexOf(s.status) + 1) % statuses.length];
+  s.status = next;
+  closeModal('detail');
+  renderAll();
+  showToast(`Status von ${id} auf "${next}" gesetzt.`);
+}
+
+function addTransport() {
+  const icons = { 'LKW':'🚛','Schiff':'🚢','Flugzeug':'✈️','Zug':'🚂','Container':'📦' };
+  const type = document.getElementById('t-type').value;
+  const newId = 'T-' + String(transports.length + 1).padStart(3,'0');
+  transports.push({
+    id: newId, icon: icons[type]||'🚛', type,
+    name: document.getElementById('t-name').value || newId,
+    capacity: Number(document.getElementById('t-capacity').value)||0,
+    operator: document.getElementById('t-operator').value||'-',
+    base: document.getElementById('t-base').value||'-',
+    status: document.getElementById('t-status').value,
+    load: 0,
+  });
+  closeModal('new-transport');
+  renderAll();
+  showToast('Transportmittel angelegt!');
+}
+
+function addRoute() {
+  const newId = 'R-' + String(routes.length + 1).padStart(3,'0');
+  routes.push({
+    id: newId,
+    from: document.getElementById('r-from').value||'-',
+    to: document.getElementById('r-to').value||'-',
+    mode: document.getElementById('r-mode').value,
+    dist: Number(document.getElementById('r-dist').value)||0,
+    days: Number(document.getElementById('r-days').value)||0,
+    customs: document.getElementById('r-customs').value||'-',
+    status: 'Aktiv',
+  });
+  closeModal('new-route');
+  renderAll();
+  showToast('Route angelegt!');
+}
+
+function addCustomsDoc() {
+  const newId = 'D-' + String(customs_docs.length + 1).padStart(3,'0');
+  customs_docs.push({
+    id: newId,
+    sid: document.getElementById('c-sid').value||'-',
+    type: document.getElementById('c-type').value,
+    country: document.getElementById('c-country').value||'-',
+    submitted: document.getElementById('c-submitted').value||'-',
+    valid: document.getElementById('c-valid').value||'-',
+    status: document.getElementById('c-status').value,
+  });
+  closeModal('new-customs');
+  renderAll();
+  showToast('Dokument angelegt!');
+}
+
+function addPartner() {
+  const newId = 'P-' + String(partners.length + 1).padStart(3,'0');
+  partners.push({
+    id: newId,
+    name: document.getElementById('p-name').value||'-',
+    type: document.getElementById('p-type').value,
+    country: document.getElementById('p-country').value||'-',
+    contact: document.getElementById('p-contact').value||'-',
+    email: document.getElementById('p-email').value||'-',
+    active: 0,
+  });
+  closeModal('new-partner');
+  renderAll();
+  showToast('Partner angelegt!');
+}
+
+// ============================
+// SEARCH & FILTER
+// ============================
+function filterShipments(q) {
+  searchQuery = q;
+  renderShipments();
+}
+
+function globalSearch(q) {
+  searchQuery = q;
+  if (q.length > 0) showPage('shipments');
+  renderShipments();
+}
+
+function filterByStatus(el, status) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  shipmentFilter = status;
+  renderShipments();
+}
+
+// ============================
+// CSV EXPORT
+// ============================
+function exportCSV() {
+  const headers = ['ID','Typ','Beschreibung','Absender','Empfänger','Herkunft','Ziel','Transportmittel','Gewicht_kg','Volumen_m3','Warenwert_EUR','ETA','Status','Priorität'];
+  const rows = shipments.map(s => [s.id,s.type,s.desc,s.sender,s.receiver,s.origin,s.dest,s.vehicle,s.weight,s.volume,s.value,s.eta,s.status,s.priority]);
+  const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'sendungen_export.csv'; a.click();
+  showToast('CSV wurde heruntergeladen!');
+}
+
+// ============================
+// PACKAGING DATA
+// ============================
+let packagingItems = [
+  // KARTONS
+  { id:'PKG-001', cat:'Karton', name:'Kleinkarton S', icon:'📦', l:30, w:20, h:15, maxload:10, selfweight:0.3, material:'Wellpappe', stack:'Ja', stock:500, props:'Standard' },
+  { id:'PKG-002', cat:'Karton', name:'Standardkarton M', icon:'📦', l:40, w:30, h:25, maxload:20, selfweight:0.5, material:'Wellpappe', stack:'Ja', stock:350, props:'Standard' },
+  { id:'PKG-003', cat:'Karton', name:'Großkarton L', icon:'📦', l:60, w:40, h:40, maxload:30, selfweight:0.8, material:'Wellpappe', stack:'Ja', stock:200, props:'Doppelwellig' },
+  { id:'PKG-004', cat:'Karton', name:'Versandkarton XL', icon:'📦', l:80, w:60, h:50, maxload:50, selfweight:1.2, material:'Wellpappe', stack:'Ja', stock:120, props:'Doppelwellig' },
+  { id:'PKG-005', cat:'Karton', name:'Flachkarton Flach', icon:'📦', l:60, w:40, h:10, maxload:15, selfweight:0.4, material:'Wellpappe', stack:'Ja', stock:180, props:'Für flache Güter' },
+  { id:'PKG-006', cat:'Karton', name:'Gefahrgutkarton', icon:'⚠️', l:40, w:30, h:30, maxload:25, selfweight:0.9, material:'Wellpappe', stack:'Nein', stock:80, props:'UN-zertifiziert, Gefahrgutkonform' },
+  { id:'PKG-007', cat:'Karton', name:'Kühlkarton Iso', icon:'❄️', l:50, w:40, h:35, maxload:20, selfweight:1.5, material:'Styropor', stack:'Ja', stock:60, props:'Kühlgeeignet, 2–8°C, 48h' },
+  // PALETTEN
+  { id:'PKG-008', cat:'Palette', name:'Europalette', icon:'🪵', l:120, w:80, h:14, maxload:1500, selfweight:25, material:'Holz', stack:'Ja', stock:200, props:'EPAL-zertifiziert' },
+  { id:'PKG-009', cat:'Palette', name:'Einwegpalette', icon:'🪵', l:120, w:80, h:12, maxload:800, selfweight:15, material:'Holz', stack:'Ja', stock:150, props:'Einweg' },
+  { id:'PKG-010', cat:'Palette', name:'Düsseldorfer Palette', icon:'🪵', l:80, w:60, h:14, maxload:500, selfweight:10, material:'Holz', stack:'Ja', stock:100, props:'Halbpalette' },
+  { id:'PKG-011', cat:'Palette', name:'Chemiepalette', icon:'🟨', l:120, w:100, h:15, maxload:1500, selfweight:28, material:'Holz', stack:'Nein', stock:50, props:'Gefahrgutkonform, EPAL 7' },
+  { id:'PKG-012', cat:'Palette', name:'Kunststoffpalette', icon:'🟦', l:120, w:80, h:15, maxload:1000, selfweight:12, material:'Kunststoff', stack:'Ja', stock:80, props:'Hygienisch, lebensmittelgeeignet' },
+  { id:'PKG-013', cat:'Palette', name:'Gitterbox', icon:'🔲', l:124, w:84, h:97, maxload:1500, selfweight:55, material:'Metall', stack:'Ja', stock:40, props:'Faltbar, stapelbar' },
+  // SONDER
+  { id:'PKG-014', cat:'Sonder', name:'Holzkiste Schwerlast', icon:'🧰', l:200, w:100, h:100, maxload:5000, selfweight:80, material:'Holz', stack:'Nein', stock:20, props:'Für Maschinen, ISPM15' },
+  { id:'PKG-015', cat:'Sonder', name:'IBC-Container (1000L)', icon:'🛢️', l:120, w:100, h:116, maxload:1300, selfweight:65, material:'Kunststoff', stack:'Ja', stock:30, props:'Flüssigkeiten, UN-zertifiziert' },
+  { id:'PKG-016', cat:'Sonder', name:'Luftfracht-Container ULD', icon:'✈️', l:153, w:156, h:163, maxload:1588, selfweight:83, material:'Aluminium', stack:'Nein', stock:15, props:'IATA-konform, Luftfracht' },
+  { id:'PKG-017', cat:'Sonder', name:'Stretch-Folie (Rolle)', icon:'🌀', l:50, w:50, h:5, maxload:0, selfweight:2, material:'Folie', stack:'Ja', stock:300, props:'Zur Ladungssicherung' },
+];
+
+let packagingAssignments = [
+  { shipmentId:'FR-2024-001', items:[ {pkgId:'PKG-002', qty:40}, {pkgId:'PKG-008', qty:4} ] },
+  { shipmentId:'FR-2024-005', items:[ {pkgId:'PKG-014', qty:2}, {pkgId:'PKG-008', qty:20} ] },
+];
+
+let pkgFilter = 'all';
+
+// ============================
+// PACKAGING RENDER
+// ============================
+function renderPackaging() {
+  const catalog = document.getElementById('packaging-catalog');
+  if (!catalog) return;
+  const data = pkgFilter === 'all' ? packagingItems : packagingItems.filter(p => p.cat === pkgFilter);
+  catalog.innerHTML = data.map(p => {
+    const vol = ((p.l * p.w * p.h) / 1000000).toFixed(3);
+    const tags = p.props.split(',').map(t => `<span class="pkg-tag">${t.trim()}</span>`).join('');
+    return `
+    <div class="pkg-card cat-${p.cat}" onclick="showPkgDetail('${p.id}')">
+      <div class="pkg-stock">${p.stock} Stk.</div>
+      <div class="pkg-icon">${p.icon}</div>
+      <div class="pkg-name">${p.name}</div>
+      <div class="pkg-dims">${p.l} × ${p.w} × ${p.h} cm · ${vol} m³</div>
+      <div class="pkg-info">
+        Max. Last: <strong>${p.maxload} kg</strong> &nbsp;|&nbsp; Eigengewicht: ${p.selfweight} kg<br>
+        Material: ${p.material} &nbsp;|&nbsp; Stapelbar: ${p.stack}
+      </div>
+      <div class="pkg-tags">${tags}</div>
+    </div>`;
+  }).join('');
+
+  // Assignments table
+  const tbody = document.getElementById('packaging-assignments-table');
+  tbody.innerHTML = packagingAssignments.map(a => {
+    const s = shipments.find(x => x.id === a.shipmentId) || { desc:'-' };
+    const itemsSummary = a.items.map(i => {
+      const p = packagingItems.find(x => x.id === i.pkgId);
+      return p ? `${p.icon} ${p.name} ×${i.qty}` : '';
+    }).join(', ');
+    const totalUnits = a.items.reduce((sum,i) => sum + i.qty, 0);
+    const totalWeight = a.items.reduce((sum,i) => {
+      const p = packagingItems.find(x => x.id === i.pkgId);
+      return sum + (p ? p.selfweight * i.qty : 0);
+    }, 0);
+    return `<tr>
+      <td class="mono">${a.shipmentId}</td>
+      <td style="font-size:12px">${s.desc}</td>
+      <td style="font-size:12px;color:var(--text2)">${itemsSummary}</td>
+      <td class="mono" style="text-align:center">${totalUnits}</td>
+      <td class="mono">${totalWeight.toFixed(1)}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editAssignment('${a.shipmentId}')">Bearbeiten</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:30px">Noch keine Zuweisungen</td></tr>';
+}
+
+function filterPackaging(el, cat) {
+  document.querySelectorAll('#pkg-tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  pkgFilter = cat;
+  renderPackaging();
+}
+
+function showPkgDetail(id) {
+  const p = packagingItems.find(x => x.id === id);
+  if (!p) return;
+  const vol = ((p.l * p.w * p.h) / 1000000).toFixed(4);
+  document.getElementById('detail-title').textContent = `${p.icon} ${p.name}`;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <span class="stat-pill">${p.cat}</span>
+      <span class="stat-pill" style="color:var(--accent)">${p.material}</span>
+      ${p.stack==='Ja'?'<span class="stat-pill" style="color:var(--green)">Stapelbar</span>':'<span class="stat-pill" style="color:var(--red)">Nicht stapelbar</span>'}
+    </div>
+    <div class="detail-row"><span class="detail-label">Abmessungen</span><span class="detail-value mono">${p.l} × ${p.w} × ${p.h} cm</span></div>
+    <div class="detail-row"><span class="detail-label">Volumen</span><span class="detail-value mono">${vol} m³</span></div>
+    <div class="detail-row"><span class="detail-label">Max. Ladegewicht</span><span class="detail-value mono">${p.maxload} kg</span></div>
+    <div class="detail-row"><span class="detail-label">Eigengewicht</span><span class="detail-value mono">${p.selfweight} kg</span></div>
+    <div class="detail-row"><span class="detail-label">Material</span><span class="detail-value">${p.material}</span></div>
+    <div class="detail-row"><span class="detail-label">Bestand</span><span class="detail-value mono">${p.stock} Stück</span></div>
+    <div class="detail-row"><span class="detail-label">Eigenschaften</span><span class="detail-value">${p.props}</span></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail');openModal('assign-packaging')">Sendung zuweisen</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('detail')">Schließen</button>
+    </div>`;
+  openModal('detail');
+}
+
+function addPackaging() {
+  const newId = 'PKG-' + String(packagingItems.length + 1).padStart(3,'0');
+  packagingItems.push({
+    id: newId,
+    cat: document.getElementById('pkg-cat').value,
+    name: document.getElementById('pkg-name').value || newId,
+    icon: document.getElementById('pkg-cat').value === 'Karton' ? '📦' : document.getElementById('pkg-cat').value === 'Palette' ? '🪵' : '🔧',
+    l: Number(document.getElementById('pkg-l').value)||0,
+    w: Number(document.getElementById('pkg-w').value)||0,
+    h: Number(document.getElementById('pkg-h').value)||0,
+    maxload: Number(document.getElementById('pkg-maxload').value)||0,
+    selfweight: Number(document.getElementById('pkg-selfweight').value)||0,
+    material: document.getElementById('pkg-material').value,
+    stack: document.getElementById('pkg-stack').value,
+    stock: Number(document.getElementById('pkg-stock').value)||0,
+    props: document.getElementById('pkg-props').value || 'Standard',
+  });
+  closeModal('new-packaging');
+  renderPackaging();
+  showToast('Packmittel angelegt!');
+}
+
+function openAssignModal() {
+  const sel = document.getElementById('assign-shipment-id');
+  sel.innerHTML = shipments.map(s => `<option value="${s.id}">${s.id} – ${s.desc}</option>`).join('');
+  renderAssignList();
+}
+
+function renderAssignList() {
+  const list = document.getElementById('assign-pkg-list');
+  list.innerHTML = packagingItems.map(p => {
+    const existing = getCurrentAssignment();
+    const item = existing ? existing.items.find(i => i.pkgId === p.id) : null;
+    const qty = item ? item.qty : 0;
+    return `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">${p.icon}</span>
+        <div>
+          <div style="font-size:13px;font-weight:500">${p.name}</div>
+          <div style="font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace">${p.l}×${p.w}×${p.h}cm · max ${p.maxload}kg</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--text2)">Bestand: ${p.stock}</span>
+        <button onclick="changeAssignQty('${p.id}',-1)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px">−</button>
+        <span id="qty-${p.id}" style="font-family:'IBM Plex Mono',monospace;font-size:14px;min-width:24px;text-align:center">${qty}</span>
+        <button onclick="changeAssignQty('${p.id}',1)" style="background:var(--surface);border:1px solid var(--border);color:var(--accent);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px">＋</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAssignPreview() { renderAssignList(); updateAssignSummary(); }
+
+function getCurrentAssignment() {
+  const sid = document.getElementById('assign-shipment-id')?.value;
+  return packagingAssignments.find(a => a.shipmentId === sid);
+}
+
+function changeAssignQty(pkgId, delta) {
+  const el = document.getElementById('qty-' + pkgId);
+  let val = Math.max(0, (parseInt(el.textContent)||0) + delta);
+  el.textContent = val;
+  updateAssignSummary();
+}
+
+function updateAssignSummary() {
+  let totalUnits = 0, totalWeight = 0, totalVol = 0;
+  packagingItems.forEach(p => {
+    const el = document.getElementById('qty-' + p.id);
+    if (!el) return;
+    const qty = parseInt(el.textContent)||0;
+    if (qty > 0) {
+      totalUnits += qty;
+      totalWeight += p.selfweight * qty;
+      totalVol += (p.l * p.w * p.h / 1000000) * qty;
+    }
+  });
+  const summary = document.getElementById('assign-summary');
+  const content = document.getElementById('assign-summary-content');
+  if (totalUnits > 0) {
+    summary.style.display = 'block';
+    content.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div><div style="font-size:11px;color:var(--text2)">Gesamteinheiten</div><div style="font-size:20px;font-weight:700;color:var(--accent)">${totalUnits}</div></div>
+        <div><div style="font-size:11px;color:var(--text2)">Verpackungsgewicht</div><div style="font-size:20px;font-weight:700;color:var(--yellow)">${totalWeight.toFixed(1)} kg</div></div>
+        <div><div style="font-size:11px;color:var(--text2)">Gesamtvolumen</div><div style="font-size:20px;font-weight:700;color:var(--green)">${totalVol.toFixed(3)} m³</div></div>
+      </div>`;
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+function saveAssignment() {
+  const sid = document.getElementById('assign-shipment-id').value;
+  const items = [];
+  packagingItems.forEach(p => {
+    const el = document.getElementById('qty-' + p.id);
+    if (!el) return;
+    const qty = parseInt(el.textContent)||0;
+    if (qty > 0) items.push({ pkgId: p.id, qty });
+  });
+  const existing = packagingAssignments.findIndex(a => a.shipmentId === sid);
+  if (existing >= 0) packagingAssignments[existing] = { shipmentId: sid, items };
+  else packagingAssignments.push({ shipmentId: sid, items });
+  closeModal('assign-packaging');
+  renderPackaging();
+  showToast(`Packmittel für ${sid} gespeichert!`);
+}
+
+function editAssignment(sid) {
+  openModal('assign-packaging');
+  setTimeout(() => {
+    const sel = document.getElementById('assign-shipment-id');
+    sel.value = sid;
+    renderAssignList();
+    updateAssignSummary();
+  }, 50);
+}
+
+// ============================
+// INIT
+// ============================
+renderAll();
+</script>
+</body>
+</html>
